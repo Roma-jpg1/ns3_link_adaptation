@@ -152,6 +152,9 @@ set(source_files
     model/tdmt-ff-mac-scheduler.cc
     model/tdtbfq-ff-mac-scheduler.cc
     model/tta-ff-mac-scheduler.cc
+
+    model/petrov_exm/hello-world.cc
+
 )
 
 set(header_files
@@ -283,6 +286,7 @@ set(header_files
     model/tdmt-ff-mac-scheduler.h
     model/tdtbfq-ff-mac-scheduler.h
     model/tta-ff-mac-scheduler.h
+    model/petrov_exm/hello-world.h
 )
 
 set(test_sources

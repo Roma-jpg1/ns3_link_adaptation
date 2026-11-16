@@ -15,6 +15,7 @@
 #include "ns3/lte-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/point-to-point-module.h"
+#include "ns3/hello-world.h"
 // #include "ns3/gtk-config-store.h"
 
 using namespace ns3;
@@ -30,9 +31,17 @@ NS_LOG_COMPONENT_DEFINE("LenaSimpleEpc");
 int
 main(int argc, char* argv[])
 {
+
+
+    HelloWorld hello; //проверка подключения класса HelloWorld из папки petrov_exm
+    hello.Print();
+
+
     uint16_t numNodePairs = 2;
     Time simTime = MilliSeconds(1100);
     double distance = 60.0;
+    double ueDistance = 0.0;
+    double ueSpeed = 0.0;
     Time interPacketInterval = MilliSeconds(100);
     bool useCa = false;
     bool disableDl = false;
@@ -44,6 +53,8 @@ main(int argc, char* argv[])
     cmd.AddValue("numNodePairs", "Number of eNodeBs + UE pairs", numNodePairs);
     cmd.AddValue("simTime", "Total duration of the simulation", simTime);
     cmd.AddValue("distance", "Distance between eNBs [m]", distance);
+    cmd.AddValue("ueDistance", "Initial distance from each UE to its eNB [m]", ueDistance);
+    cmd.AddValue("ueSpeed", "UE speed away from its eNB [m/s]", ueSpeed);
     cmd.AddValue("interPacketInterval", "Inter packet interval", interPacketInterval);
     cmd.AddValue("useCa", "Whether to use carrier aggregation.", useCa);
     cmd.AddValue("disableDl", "Disable downlink data flows", disableDl);
@@ -56,6 +67,9 @@ main(int argc, char* argv[])
 
     // parse again so you can override default values from the command line
     cmd.Parse(argc, argv);
+
+    NS_ABORT_MSG_IF(ueDistance < 0 || ueSpeed < 0,
+                    "ueDistance and ueSpeed must be nonnegative");
 
     if (useCa)
     {
@@ -110,7 +124,17 @@ main(int argc, char* argv[])
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobility.SetPositionAllocator(positionAlloc);
     mobility.Install(enbNodes);
-    mobility.Install(ueNodes);
+
+    MobilityHelper ueMobility;
+    ueMobility.SetMobilityModel("ns3::ConstantVelocityMobilityModel");
+    ueMobility.Install(ueNodes);
+    for (uint16_t i = 0; i < numNodePairs; i++)
+    {
+        Ptr<ConstantVelocityMobilityModel> model =
+            ueNodes.Get(i)->GetObject<ConstantVelocityMobilityModel>();
+        model->SetPosition(Vector(distance * i + ueDistance, 0, 0));
+        model->SetVelocity(Vector(ueSpeed, 0, 0));
+    }
 
     // Install LTE Devices to the nodes
     NetDeviceContainer enbLteDevs = lteHelper->InstallEnbDevice(enbNodes);
@@ -192,6 +216,14 @@ main(int argc, char* argv[])
 
     Simulator::Stop(simTime);
     Simulator::Run();
+
+    for (uint16_t i = 0; i < numNodePairs; i++)
+    {
+        double finalDistance = ueNodes.Get(i)->GetObject<MobilityModel>()->GetDistanceFrom(
+            enbNodes.Get(i)->GetObject<MobilityModel>());
+        std::cout << "UE " << i << ": initial distance = " << ueDistance
+                  << " m, final distance = " << finalDistance << " m" << std::endl;
+    }
 
     /*GtkConfigStore config;
     config.ConfigureAttributes();*/
