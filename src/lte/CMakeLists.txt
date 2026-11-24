@@ -147,6 +147,7 @@ set(source_files
     model/pss-ff-mac-scheduler.cc
     model/rem-spectrum-phy.cc
     model/rr-ff-mac-scheduler.cc
+    model/simple-olla.cc
     model/simple-ue-component-carrier-manager.cc
     model/tdbet-ff-mac-scheduler.cc
     model/tdmt-ff-mac-scheduler.cc
@@ -281,6 +282,7 @@ set(header_files
     model/pss-ff-mac-scheduler.h
     model/rem-spectrum-phy.h
     model/rr-ff-mac-scheduler.h
+    model/simple-olla.h
     model/simple-ue-component-carrier-manager.h
     model/tdbet-ff-mac-scheduler.h
     model/tdmt-ff-mac-scheduler.h

@@ -197,7 +197,7 @@ Simulator::Now()
 }
 
 Time
-Simulator::GetDelayLeft(const EventId& id)
+Simulator::GetDelayLeft(const EventId& id) // получить оставшуюся задержку
 {
     NS_LOG_FUNCTION(&id);
     return GetImpl()->GetDelayLeft(id);

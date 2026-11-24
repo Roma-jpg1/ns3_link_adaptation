@@ -36,6 +36,9 @@ TAGS
 
 build-dir/
 build/
+/results/
+/Dl*Stats.txt
+/Ul*Stats.txt
 /.cproject
 /.project
 

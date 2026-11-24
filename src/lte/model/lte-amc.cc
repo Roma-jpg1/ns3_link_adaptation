@@ -489,6 +489,7 @@ LteAmc::GetCqiFromSpectralEfficiency(double s)
     return cqi;
 }
 
+//Получение mcs при помощи cqi
 int
 LteAmc::GetMcsFromCqi(int cqi)
 {

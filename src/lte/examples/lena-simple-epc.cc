@@ -15,7 +15,8 @@
 #include "ns3/lte-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/point-to-point-module.h"
-#include "ns3/hello-world.h"
+
+#include <iostream>
 // #include "ns3/gtk-config-store.h"
 
 using namespace ns3;
@@ -31,13 +32,7 @@ NS_LOG_COMPONENT_DEFINE("LenaSimpleEpc");
 int
 main(int argc, char* argv[])
 {
-
-
-    HelloWorld hello; //проверка подключения класса HelloWorld из папки petrov_exm
-    hello.Print();
-
-
-    uint16_t numNodePairs = 2;
+    uint16_t numNodePairs = 1;
     Time simTime = MilliSeconds(1100);
     double distance = 60.0;
     double ueDistance = 0.0;
@@ -80,6 +75,7 @@ main(int argc, char* argv[])
     }
 
     Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
+    lteHelper->SetSchedulerType("ns3::PfFfMacScheduler");
     Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper>();
     lteHelper->SetEpcHelper(epcHelper);
 

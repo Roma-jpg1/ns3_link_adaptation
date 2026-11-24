@@ -272,6 +272,27 @@ class PfFfMacScheduler : public FfMacScheduler
      */
     void RefreshHarqProcesses();
 
+    /**
+     * Count first-transmission ACK/NACK results for the single-UE experiment.
+     *
+     * @param feedback Newly received downlink HARQ feedback.
+     */
+    void UpdateSimpleBler(const std::vector<DlInfoListElement_s>& feedback);
+
+    /**
+     * Select a downlink MCS using CQI and the last completed BLER window.
+     *
+     * @param cqi Reported CQI.
+     * @return Selected MCS, preserving the existing fallback for CQI 0.
+     */
+    uint8_t GetDlMcs(uint8_t cqi);
+
+    bool m_simpleBlerAdaptation{false}; ///< Enable the single-UE experiment.
+    uint32_t m_blerCount{0};           ///< First transmissions in the current window.
+    uint32_t m_blerErrors{0};          ///< Failed first transmissions in the window.
+    double m_bler{0.0};               ///< BLER from the last completed window.
+    bool m_blerReady{false};          ///< Whether a completed BLER window exists.
+
     Ptr<LteAmc> m_amc; ///< AMC
 
     /**

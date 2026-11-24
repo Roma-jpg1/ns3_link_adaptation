@@ -21,10 +21,17 @@ main(int argc, char* argv[])
 {
     Time simTime = MilliSeconds(1050);
     bool useCa = false;
+    bool useBlerAdaptation = false;
+    double distance = 100.0;
+    double speed = 20.0;
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("simTime", "Total duration of the simulation", simTime);
     cmd.AddValue("useCa", "Whether to use carrier aggregation.", useCa);
+    cmd.AddValue("useBlerAdaptation", "Enable simple single-UE BLER-based MCS selection.",
+                 useBlerAdaptation);
+    cmd.AddValue("distance", "Distance between the eNB and UE in meters.", distance);
+    cmd.AddValue("speed", "UE speed along the X axis in meters per second.", speed);
     cmd.Parse(argc, argv);
 
     // to save a template default attribute file run it like this:
@@ -43,6 +50,10 @@ main(int argc, char* argv[])
     // Parse again so you can override default values from the command line
     cmd.Parse(argc, argv);
 
+    NS_ABORT_MSG_IF(distance < 0, "distance must be nonnegative");
+    NS_ABORT_MSG_IF(useBlerAdaptation && useCa,
+                    "The simple BLER experiment uses one component carrier");
+
     if (useCa)
     {
         Config::SetDefault("ns3::LteHelper::UseCa", BooleanValue(useCa));
@@ -52,6 +63,8 @@ main(int argc, char* argv[])
     }
 
     Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
+    lteHelper->SetSchedulerType("ns3::PfFfMacScheduler");
+    lteHelper->SetSchedulerAttribute("SimpleBlerAdaptation", BooleanValue(useBlerAdaptation));
 
     // Uncomment to enable logging
     //  lteHelper->EnableLogComponents ();
@@ -64,13 +77,23 @@ main(int argc, char* argv[])
 
     // Install Mobility Model
     MobilityHelper mobility;
+
+    // The base station stays at the origin.
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobility.Install(enbNodes);
     BuildingsHelper::Install(enbNodes);
-    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+
+    // The UE moves at a constant velocity.
+    mobility.SetMobilityModel("ns3::ConstantVelocityMobilityModel");
     mobility.Install(ueNodes);
     BuildingsHelper::Install(ueNodes);
 
+    Ptr<ConstantVelocityMobilityModel> ueMobility =
+        ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>();
+
+    ueMobility->SetPosition(Vector(distance, 0, 0));
+    ueMobility->SetVelocity(Vector(speed, 0, 0));
+    
     // Create Devices and install them in the Nodes (eNB and UE)
     NetDeviceContainer enbDevs;
     NetDeviceContainer ueDevs;
