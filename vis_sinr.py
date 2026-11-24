@@ -52,25 +52,6 @@ def group_by_ue(rows):
     return groups
 
 
-def read_interference(file_name):
-    # В этом файле значения и время следующей записи могут быть склеены.
-    text = (folder / file_name).read_text(encoding="utf-8").split("\n", 1)[-1]
-    pattern = r"(?:\A|(?<=\s)|(?<=[eE][+-]\d\d))(?P<time>\d+(?:\.\d+)?)\t(?P<cell>\d+)\t"
-    starts = list(re.finditer(pattern, text))
-    rows = []
-
-    for i, start in enumerate(starts):
-        end = starts[i + 1].start() if i + 1 < len(starts) else len(text)
-        values = [float(value) for value in text[start.end():end].split()]
-        if values:
-            rows.append({
-                "time": float(start.group("time")),
-                "cell": start.group("cell"),
-                "interference": sum(values) / len(values),
-            })
-    return rows
-
-
 def read_adaptation_log():
     decisions = []
     windows = []
@@ -119,17 +100,13 @@ for file_name in files:
     if not tables[file_name]:
         raise SystemExit(f"В файле нет данных: {file_name}")
 
-interference = read_interference("UlInterferenceStats.txt")
-if not interference:
-    raise SystemExit("В файле UlInterferenceStats.txt нет данных")
-
 decisions, windows = read_adaptation_log()
 if windows:
-    fig, axes = plt.subplots(4, 1, figsize=(12, 13), sharex=True)
-    sinr_axis, mcs_axis, bler_axis, interference_axis = axes
-else:
     fig, axes = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
-    sinr_axis, mcs_axis, interference_axis = axes
+    sinr_axis, mcs_axis, bler_axis = axes
+else:
+    fig, axes = plt.subplots(2, 1, figsize=(12, 7), sharex=True)
+    sinr_axis, mcs_axis = axes
 
 # SINR переводим из линейных значений в децибелы.
 for file_name, direction, column in [
@@ -188,27 +165,6 @@ if windows:
     bler_axis.set_title(f"BLER DL: окно из {windows[0]['samples']} первых передач")
     bler_axis.set_ylabel("Ошибки, %")
     bler_axis.set_ylim(0, 100)
-
-# Средняя спектральная плотность помех по ресурсным блокам.
-cells = {}
-for row in interference:
-    cell = row["cell"]
-    if cell not in cells:
-        cells[cell] = []
-    cells[cell].append(row)
-
-for cell, rows in cells.items():
-    rows.sort(key=lambda row: row["time"])
-    times = []
-    values = []
-    for row in rows:
-        if row["interference"] > 0:
-            times.append(row["time"])
-            values.append(10 * math.log10(row["interference"]))
-    interference_axis.plot(times, values, marker=".", label=f"Сота {cell}")
-
-interference_axis.set_title("Помехи и шум UL")
-interference_axis.set_ylabel("дБВт/Гц")
 
 for axis in axes.flat:
     axis.set_xlabel("Время, с")

@@ -18,6 +18,8 @@
 
 #include "ns3/nstime.h"
 
+#include <array>
+#include <cstddef>
 #include <map>
 #include <vector>
 
@@ -273,25 +275,28 @@ class PfFfMacScheduler : public FfMacScheduler
     void RefreshHarqProcesses();
 
     /**
-     * Count first-transmission ACK/NACK results for the single-UE experiment.
+     * Update a sliding BLER window with first-transmission ACK/NACK results.
      *
      * @param feedback Newly received downlink HARQ feedback.
      */
     void UpdateSimpleBler(const std::vector<DlInfoListElement_s>& feedback);
 
     /**
-     * Select a downlink MCS using CQI and the last completed BLER window.
+     * Select a downlink MCS using CQI and the current full BLER window.
      *
      * @param cqi Reported CQI.
      * @return Selected MCS, preserving the existing fallback for CQI 0.
      */
     uint8_t GetDlMcs(uint8_t cqi);
 
+    static constexpr std::size_t BLER_WINDOW_SIZE = 16; ///< Number of results in the BLER window.
+    std::array<uint8_t, BLER_WINDOW_SIZE> m_blerWindow{}; ///< Results: ACK is 0, NACK is 1.
+    std::size_t m_blerNext{0};         ///< Next window entry to overwrite.
     bool m_simpleBlerAdaptation{false}; ///< Enable the single-UE experiment.
-    uint32_t m_blerCount{0};           ///< First transmissions in the current window.
-    uint32_t m_blerErrors{0};          ///< Failed first transmissions in the window.
-    double m_bler{0.0};               ///< BLER from the last completed window.
-    bool m_blerReady{false};          ///< Whether a completed BLER window exists.
+    uint32_t m_blerCount{0};           ///< Collected results, capped at the window size.
+    uint32_t m_blerErrors{0};          ///< NACKs in the current window.
+    double m_bler{0.0};               ///< BLER over the current full window.
+    bool m_blerReady{false};          ///< Whether the window has filled.
 
     Ptr<LteAmc> m_amc; ///< AMC
 

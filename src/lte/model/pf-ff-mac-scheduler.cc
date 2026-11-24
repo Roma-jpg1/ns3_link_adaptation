@@ -426,7 +426,8 @@ PfFfMacScheduler::RefreshHarqProcesses()
 }
 
 void
-PfFfMacScheduler::UpdateSimpleBler(const std::vector<DlInfoListElement_s>& feedback)
+PfFfMacScheduler::UpdateSimpleBler(
+    const std::vector<DlInfoListElement_s>& feedback)
 {
     NS_LOG_FUNCTION(this << feedback.size());
 
@@ -435,43 +436,55 @@ PfFfMacScheduler::UpdateSimpleBler(const std::vector<DlInfoListElement_s>& feedb
         return;
     }
 
-    NS_ABORT_MSG_IF(!m_harqOn, "The simple BLER experiment requires HARQ feedback");
-    NS_ABORT_MSG_IF(m_uesTxMode.size() > 1, "The simple BLER experiment supports one UE");
+    NS_ABORT_MSG_IF(!m_harqOn,
+                    "The simple BLER experiment requires HARQ feedback");
+    NS_ABORT_MSG_IF(m_uesTxMode.size() > 1,
+                    "The simple BLER experiment supports one UE");
 
-    constexpr uint32_t windowSize = 32;
     for (const auto& item : feedback)
     {
         const auto& dci =
-            m_dlHarqProcessesDciBuffer.at(item.m_rnti).at(item.m_harqProcessId);
-        NS_ABORT_MSG_IF(dci.m_rv.size() != 1 || item.m_harqStatus.size() != 1,
+            m_dlHarqProcessesDciBuffer.at(item.m_rnti)
+                .at(item.m_harqProcessId);
+
+        NS_ABORT_MSG_IF(dci.m_rv.size() != 1 ||
+                            item.m_harqStatus.size() != 1,
                         "The simple BLER experiment supports one transmission layer");
 
-        // RV is zero for the first attempt and increases for HARQ retransmissions.
+        // Count only first transmission attempts with a nonempty TB.
         if (dci.m_rv.at(0) != 0 || dci.m_tbsSize.at(0) == 0)
         {
             continue;
         }
 
         const auto status = item.m_harqStatus.at(0);
-        if (status != DlInfoListElement_s::ACK && status != DlInfoListElement_s::NACK)
+        if (status != DlInfoListElement_s::ACK &&
+            status != DlInfoListElement_s::NACK)
         {
             continue;
         }
 
-        ++m_blerCount;
-        if (status == DlInfoListElement_s::NACK)
+        const uint8_t error = (status == DlInfoListElement_s::NACK);
+
+        m_blerErrors -= m_blerWindow[m_blerNext];
+        m_blerWindow[m_blerNext] = error;
+        m_blerErrors += error;
+
+        m_blerNext = (m_blerNext + 1) % BLER_WINDOW_SIZE;
+
+        if (m_blerCount < BLER_WINDOW_SIZE)
         {
-            ++m_blerErrors;
+            ++m_blerCount;
         }
 
-        if (m_blerCount == windowSize)
+        if (m_blerCount == BLER_WINDOW_SIZE)
         {
-            m_bler = static_cast<double>(m_blerErrors) / m_blerCount;
+            m_bler = static_cast<double>(m_blerErrors) / BLER_WINDOW_SIZE;
             m_blerReady = true;
-            NS_LOG_INFO("SIMPLE_BLER samples=" << m_blerCount << " errors=" << m_blerErrors
-                                               << " bler=" << m_bler);
-            m_blerCount = 0;
-            m_blerErrors = 0;
+
+            NS_LOG_INFO("SIMPLE_BLER samples=" << m_blerCount
+                                             << " errors=" << m_blerErrors
+                                             << " bler=" << m_bler);
         }
     }
 }
